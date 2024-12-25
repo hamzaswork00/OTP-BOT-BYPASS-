@@ -6,14 +6,20 @@ from telebot import TeleBot
 from cryptography.fernet import Fernet
 from pyngrok import ngrok
 
-# Configuration
+# --- Section Configuration ---
+# Remplacez par vos valeurs
 TWILIO_SID = "your_twilio_account_sid"
 TWILIO_TOKEN = "your_twilio_auth_token"
 TWILIO_NUMBER = "your_twilio_phone_number"
 TELEGRAM_TOKEN = "your_telegram_bot_token"
-PASSWORD = "error_404_ot"
-SECRET_KEY = Fernet.generate_key()  # Clé de chiffrement
+
+# Mot de passe chiffré
+SECRET_KEY = b"your_predefined_secret_key"  # Utilisez une clé Fernet pré-générée pour cohérence
 cipher_suite = Fernet(SECRET_KEY)
+ENCRYPTED_PASSWORD = cipher_suite.encrypt(b"error_404_ot").decode()  # Mot de passe chiffré
+
+# URL Ngrok configuré manuellement
+NGROK_URL = "https://website.com"  # URL statique de Ngrok
 
 # Twilio Client
 twilio_client = Client(TWILIO_SID, TWILIO_TOKEN)
@@ -24,9 +30,10 @@ bot = TeleBot(TELEGRAM_TOKEN)
 # Flask App
 app = Flask(__name__)
 
-# Vérification du mot de passe
+# Vérification du mot de passe (déchiffrement)
 def check_password(input_password):
-    return input_password == PASSWORD
+    decrypted_password = cipher_suite.decrypt(ENCRYPTED_PASSWORD.encode()).decode()
+    return input_password == decrypted_password
 
 # Chiffrer les données
 def encrypt_data(data):
@@ -74,14 +81,13 @@ def webhook():
     bot.process_new_updates([update])
     return "OK", 200
 
-# Démarrer ngrok et définir le webhook Telegram
+# Utiliser l'URL statique pour le webhook Telegram
 def start_ngrok():
-    public_url = ngrok.connect(5000).public_url
-    print(f"Webhook URL : {public_url}/{TELEGRAM_TOKEN}")
+    print(f"Webhook URL : {NGROK_URL}/{TELEGRAM_TOKEN}")
     bot.remove_webhook()
-    bot.set_webhook(url=f"{public_url}/{TELEGRAM_TOKEN}")
+    bot.set_webhook(url=f"{NGROK_URL}/{TELEGRAM_TOKEN}")
 
 if __name__ == "__main__":
-    # Lancer ngrok et Flask
+    # Utiliser l'URL statique et lancer Flask
     start_ngrok()
     app.run(port=5000)
